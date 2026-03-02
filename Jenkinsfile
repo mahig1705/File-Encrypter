@@ -20,13 +20,20 @@ pipeline {
                 echo "Running JUnit tests for File-Encrypter..."
                 cd "Password Protection"
 
-                # Download JUnit jar if not already present
-                if [ ! -f junit-platform-console-standalone.jar ]; then
-                    echo "Downloading JUnit..."
-                    curl -L -o junit-platform-console-standalone.jar https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/1.10.0/junit-platform-console-standalone-1.10.0.jar
+                # Remove previous corrupt jar if exists
+                rm -f junit-platform-console-standalone.jar
+
+                # Download JUnit jar (single-line URL)
+                echo "Downloading JUnit..."
+                curl -L -o junit-platform-console-standalone.jar https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/1.10.0/junit-platform-console-standalone-1.10.0.jar
+
+                # Check download succeeded
+                if [ ! -s junit-platform-console-standalone.jar ]; then
+                    echo "ERROR: JUnit jar download failed or is empty."
+                    exit 1
                 fi
 
-                # Compile test files (assuming test/*.java exists)
+                # Compile test files
                 mkdir -p test-build
                 javac -cp junit-platform-console-standalone.jar:build -d test-build test/*.java
 
@@ -38,13 +45,22 @@ pipeline {
         }
         stage('Deploy') {
             steps {
-                echo "Deploy stage skipped for now."
+                sh '''
+                echo "Deploying (Packaging) File-Encrypter Application..."
+                cd "Password Protection"
+                # Create executable artifact (JAR)
+                jar cf FileEncrypter.jar -C build .
+                echo "Deployment successful - Artifact ready"
+                '''
             }
         }
     }
     post {
-        always {
-            echo "Pipeline finished."
+        success {
+            echo "Pipeline executed successfully!"
+        }
+        failure {
+            echo "Pipeline failed!"
         }
     }
 }
